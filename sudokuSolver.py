@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import threading
 import time
+import ctypes
 
 # Sudoku solving function with optimization and constraint propagation
 def is_safe(board, row, col, num):
@@ -76,6 +77,14 @@ def count_conflicts(board, row, col, num):
                 conflicts += 1
     return conflicts
 
+# Check if system is in dark mode (Windows 10)
+def is_system_in_dark_mode():
+    try:
+        is_dark_mode = ctypes.windll.dwmapi.DwmGetWindowAttribute
+        return bool(is_dark_mode)
+    except AttributeError:
+        return False
+
 # GUI application
 class SudokuGUI:
     def __init__(self, root):
@@ -85,6 +94,7 @@ class SudokuGUI:
         self.solved_cells = set()
         self.current_row = 0
         self.current_col = 0
+        self.dark_mode = is_system_in_dark_mode()
         self.create_grid()
         self.solve_button = tk.Button(self.root, text="Solve Sudoku", command=self.solve)
         self.solve_button.place(x=100, y=500)
@@ -113,7 +123,7 @@ class SudokuGUI:
 
         for row in range(9):
             for col in range(9):
-                entry = tk.Entry(self.root, width=2, font=('Arial', 18), justify='center', relief='solid', bd=1)
+                entry = tk.Entry(self.root, width=2, font=('Arial', 18), justify='center', relief='solid', bd=1, fg="black")
                 entry.place(x=col * 50 + 30, y=row * 50 + 30, width=40, height=40)
                 entry.bind("<KeyRelease>", self.validate_input)
                 entry.bind("<Button-1>", self.click_cell)
@@ -143,9 +153,9 @@ class SudokuGUI:
                 if (row, col) in self.solved_cells:
                     self.cells[row][col].config(bg="lightyellow")
                 else:
-                    self.cells[row][col].config(bg="white")
+                    self.cells[row][col].config(bg="white" if not self.dark_mode else "black", fg="black")
 
-        self.cells[self.current_row][self.current_col].config(bg="white")
+        self.cells[self.current_row][self.current_col].config(bg="lightblue" if not self.dark_mode else "darkgray")
         self.cells[self.current_row][self.current_col].focus_set()
 
     def move_up(self, event):
@@ -198,8 +208,19 @@ class SudokuGUI:
         for row in range(9):
             for col in range(9):
                 self.cells[row][col].delete(0, tk.END)
-                self.cells[row][col].config(bg="white")
+                self.cells[row][col].config(bg="white" if not self.dark_mode else "black", fg="black")
         self.solved_cells.clear()
+
+    def toggle_mode(self):
+        self.dark_mode = not self.dark_mode
+        bg_color = "black" if self.dark_mode else "white"
+        fg_color = "white" if self.dark_mode else "black"
+        self.root.config(bg=bg_color)
+        self.canvas.config(bg=bg_color)
+        for row in range(9):
+            for col in range(9):
+                self.cells[row][col].config(bg=bg_color, fg=fg_color)
+        self.highlight_current_cell()
 
 if __name__ == "__main__":
     root = tk.Tk()
